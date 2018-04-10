@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', help='report config',
                         default="config/cfsync.yml")
-    parser.set_defaults(deep_scan=True)
+    parser.add_argument('--parent', help='parent card')
     parser.add_argument('action', nargs='?',
                         help='list to list custom fields,'
                         'sync_cf to sync downstream',
@@ -42,17 +42,12 @@ def main():
     if args.action == 'list':
         collector.list_boards()  # output list of Trello boards and lists
         return
-    elif args.action == 'list_cf':
-        cf_list = collector.list_cf()
-        for cf_val in cf_list:
-            logger.info("Custom field name: {}".format(cf_val['name']))
-            for cf in cf_val['values']:
-                logger.info("CF values: {0}, status: {1}".format(cf['name'],
-                            cf['list_id']))
-            logger.info("**** custom fields applied: ****")
-            existing_cfs = collector.get_cf_opts(
-                report_config['add_cf_to'][0], cf_val['name'])
-            logger.info("Applied custom fields: {}".format(existing_cfs))
+    elif args.action == 'list_parents':
+        collector.print_cards(collector.parent_cards_generator(), "Parent")
+#         for card in collector.parent_cards_generator():
+#             logger.info("Parent card: {}".format(card))
+    elif args.action == 'list_all_children':
+        collector.print_cards(collector.all_children_card_generator(), "Child")
     elif args.action == 'sync_cf':
         cf_list = collector.list_cf()
         for cf_val in cf_list:

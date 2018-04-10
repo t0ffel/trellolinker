@@ -21,9 +21,9 @@ class TrelloCollector(object):
                                    trello_secret[':oauth_token_secret'])
 
         #Extract report configuration parameters
-        self.cf_source = report_config['cf_source']
+        self.parents = report_config['parents']
 
-        self.target_boards = report_config['add_cf_to']
+        self.children_boards = report_config['children_boards']
 
     def list_boards(self):
         boards = self.client.list_boards(board_filter="open")
@@ -109,3 +109,35 @@ class TrelloCollector(object):
     def target_board_generator(self):
         for board_id in self.target_boards:
             yield self.client.get_board(board_id)
+
+    def parent_lists_generator(self):
+        """get list of all parent lists and return it
+
+        :rtype: generator of lists
+        """
+        for board_item in self.parents:
+            board = self.client.get_board(board_item['board_id'])
+            for list_id in board_item['lists']:
+                yield board.get_list(list_id)
+
+    def print_cards(self, generator, name):
+        """list all parent cards from the config"""
+        for card in generator:
+            logger.info("{0} card: {1}".format(name, card))
+
+    def parent_cards_generator(self):
+        return self.cards_generator(self.parent_lists_generator())
+
+    def cards_generator(self, generator):
+        for list_item in generator:
+            for card in list_item.list_cards():
+                yield (card.name, card.short_url, list_item.name)
+
+    def all_children_list_generator(self):
+        for board_item in self.children_boards:
+            board = self.client.get_board(board_item['board_id'])
+            for trellolist in board.open_lists():
+                yield trellolist
+
+    def all_children_card_generator(self):
+        return self.cards_generator(self.all_children_list_generator())
